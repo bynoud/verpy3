@@ -1,0 +1,108 @@
+
+module abcmod();  // comment start with '//' will be ignored in final output
+
+parameter BW = 8;
+parameter AW = 4;
+parameter DW = BW+AW;
+localparam IW = DW+AW-3;
+localparam XX = DW-IW+5;
+
+input [IW+AW:XX-2] in0 #'user comment any where here', in1 #"or here"; // both port are [7:0] bus
+// this is used to force a net to be input/output regarless of it driver/load
+// #'...' or #"..." is user-comment, will be written as comment to final output
+
+// this could specified ANYWHERE in module.
+// + if it specified before the net created, it must be fulll netname
+// + else, it can be a pattern '//' to match multiple net
+
+output reg [6:0] out2;
+output [BW-2+AW:3] out3;  // no packed array in v2k
+// this is NOT multi-dimentional array. only support 1-size array
+
+port either_in_or_out_scala; // this will force the net to be scala
+// port-direction will be infered : output if it has driver, else input
+
+port reg [*]this_is_either_bus_or_scala_port;  // this will infer array based on the net created
+
+input [*] /let*the.tool_find[^the]dnet/;
+// this let the tool find all matched net, and force them to input, keep the bus-width
+
+wire [3:0] net1, net2[3][BW-1:4]; // force a net to be specified width
+reg this_is_scala_reg;  // this is scala
+reg /find*nets*and.force_was_reg/[*]; // find net, and to be 'reg' type, but dont change bus width
+
+assign /(thipin(.*))/ = that #"inside user-comment will be put ON-LINE with expression";
+// LHS can use /pattern/, all regex pattern supported
+assign thisushc = r/$1asd/ ; #"comment after ';' will be put UNDER this assign"
+#'just like this one'
+// RHS can use 'r/repalcement/', all replacement support, included $0..$9
+
+assign {concat_net[3:0], /with*a.pattern/[3:0]} = {is[4] , r/fine$1/[5:3]};
+// but restriction is only 1 /pattern/ in LHS, and at most 1 r/replacement/ in LHS
+
+// only support below syntax in always block:
+//  if/else case for while
+always @* /find_this_net/[*] = r/equal$1thisnet/[*];  // combination
+// in combination, there's must be NO delay '#1...'
+
+// or FF, could include delay #...
+always @(posedge clk or negedge /rst*_axi/)
+  if (any[3:0] == {expre[1:0], /here*/[3:2]} && (!is_ok)) begin
+    ff_here[3:0] <= #1 4'b0;
+    /f*nets/[*] <= #1 '1;  // all bit 1
+  end
+  else if (/ok_togo/) begin
+    case (/this/[1:0])
+      {1'b1, net[3]}  : /f*nets/[3:0] <= #1 r/thisrepalce$1/;
+      2'b11           : begin
+                        anything_here <= #1 is_ok_maybe & ifelse_if_youwant;
+                        end
+      default         : ff_here[*]    <= #1 4'hf;
+    endcase
+  end
+
+always @* begin : always_block_named
+  if (you_want_a_loop) begin : named_block_required_to_have_local_var
+    integer i;
+    /this_net/ = '0;  // all bit 0
+    for (i=0; i</find_this*net/; i=i+1) /this_net/ = r/this_net/ | (4'h1 << i);
+                              // NOT support '++'
+  end
+  else begin : named_2
+    int stop; // or another kind of loop, int/integer are both accepted
+    stop = 0;
+    while ( !stop && /this*/ != 0 && otherthing[3:0] != 4'h6) begin
+      doing_somthing = here;
+      if (that==2) stop = 1;
+    end
+  end
+end
+
+// comment asdf
+#"outside comment like this will only guarantee order, but maybe apear right after above one"
+modulename #(par1 = ( par1 & expre + 1) #"comment for par1",
+  par2 = par2_val) instname (
+  port1 = port1net[3:0],
+  //s/(port(.)2)/{$1[2:0], * $2[0]}/ $in,
+  /(port(.)2)/ = r/{$1[2:0], * $2[0]}/ $in,
+  /tobe_unusedpins/ = ,  // empty is for unused (float/fix0)
+  /thi*is_repeat_pin_as_netname/ = * $out, // single '*' replacement is short hand for repeat
+  ._);  // single ._ is short hand for unused all remained pins, must use it last 
+
+modname3 #(.normal(param), .assignment(forlegacy))
+  inst3 (
+  full_pin_name_must_use_equal = {'0[2:0], net[1:0], '1[2:0]},  // '1 is short hand for unused (float/fix1)
+  .or_use_legacy (pinassign) $"any commmadn here for future expand",
+  /canbe/ = {_[1:0], r/missed_here[3:2]/} $out, // '_' is unused '0' (just same as '0), use it in output to prevent confused
+  /this_also_fix_1/ = '1,
+  legacy_forrepeat_pin=,  // empty net also can be used with legacy '.'pin
+  .*  // short hand for repeat all remained port as net, must use it last
+  );
+  
+mod4 
+  inst4 ( /*/ = * ); // these 2 pin instance are same effect
+mod5 
+  inst5 ( .* );
+  
+endmodule
+// endmodule is optional at the end of file

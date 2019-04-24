@@ -1,0 +1,69 @@
+
+module abcmod#(parameter AW=8, BW=3, DW=AW+BW)( );
+input [AW-1:0] in0 #'user comment any where here', in1 #"or here"; // both port are [7:0] bus
+output reg [4:0] out_reg #'user here' ;
+#'just like this one'
+always @* /find_*_this_net/[*] = r/equal$1thisnet/[*];  // combination
+// remove this
+
+always @(posedge clk or negedge resetn) begin
+  if (/firstcon/ && !thisone) begin
+    regass[3:1] <= #0.1 3'b0;
+  end
+  else if (second_cond) begin
+    regass_num2[3] <= #0.1 {/thisreg/[2], othernet[5:3]};
+  end
+  else if (third_cond) begin
+    regass[DW:1] <= #0.1 /finthis/[*];
+  end
+  else begin
+    regass[3:1] <= #0.1 oktogo[2];
+  end
+end
+
+wire [3:0]scal_wire;
+reg [7:0] scal_net [AW-BW-1:0][15:3];
+
+assign /f*ndnet/[3][5:2] = { scal_net[BW][3:2], newnet1[BW:2] };
+assign {lhsnet1[5:2], /other.n/ [3]} = new_dim[4][3:2];
+
+// support verilog2001 standard, but normally not in real rtl
+// some construct which is never used in RTL is removed (UDP, cell define ...)
+initial begin
+  abc[13:0] = {new_dim[3][7:5], 10'h0};
+end
+
+// unresolved instance: all pin is 'unknow-size' bus
+// net-bus-size is either infer by previous declare
+//  or eplicite state in connection expression
+modname3 #(paramname = canbe, assiglike = thisone)
+  inst3 (
+  .legacy (pinassign), // this infer as scala 'pinassign'
+  .legacypin ,  // unused pin
+  or_use_this = {this_wil_be_bus[2:0], scal_wire}, // same as {..[2:], scal_net[3:0]},
+                                // because scal_net already defined as [3:0]
+  // remove this support: s/pinname/net_$1/,
+  /canbe/ = r/any_net_$1search/[3:0] $out,
+  /thisrepeatitself/ = *,
+  .*  // short hand for repeat all remained port as net, must use it last
+  );
+
+// for resolved instance
+// net-bus-size first equal to declaration, if any
+// else it will infer same as pin-size, it connection is only that net
+// else if connection is an expression, you must explicite declare size
+//   of net, either by state in expression, or declare it
+legacyver #(AW=8)
+  legacyinst (
+  clk = *,    // infer scalanet 'clk'
+  rstn = myreset, // infer scala
+  in0  = myin0,   // infer a bus myin0[AW-1:0]
+  in1  = {'1[1:0], myin1[3:0], 2'b11},  // infer bus myin1[3:0], fix 1 for bit[7:6] & [1:0]
+  out0 = {*[2], myout0[1:0], myout01[3:0], _[2:0]}, // infer 2 bus net, unused some bit
+  /*_wpat2/ = _ $out,  // unused pin *_wpat2, only output
+  /*_wpat2/ = *,  // find all remained pin *_wpat2, create net with same name/same bus
+  /*_wpat1/ = '1  // find pin *_wpat1, unused output, fix all 1 for input
+  );
+  
+endmodule
+

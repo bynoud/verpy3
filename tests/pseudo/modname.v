@@ -1,0 +1,3 @@
+
+module modname();
+endmodule

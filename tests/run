@@ -1,0 +1,1 @@
+PYTHONPATH="/home/ductt/ToWIN/projs/python:/home/ductt/python/antlr4-python3-runtime-4.7.2/src" python3 "$@"

@@ -1,0 +1,47 @@
+
+module abcmod#(parameter AW=8, BW=3, DW=AW+BW)(
+port [6:1] out_wpat2,
+output [3:1] /out*1/, // out1
+port [15:1] m/*_wp.t1/  // in_wpat1 otherout_wpat1
+// implicit inputs: clk myreset
+// implicit outputs: myout01 out1
+);
+
+assign myin3 = /my.ut0/;
+
+always @* begin
+    /myin*/ = r/out_wpat*/;
+end
+
+// unresolved instance: all pin is 'unknow-size' bus
+// net-bus-size is either infer by previous declare
+//  or eplicite state in connection expression
+unresolved_modname #(paramname = canbe, assiglike = thisone)
+  inst3 (
+  .legacy (myin0) $out,
+  .legacypin (myin3[3:0]) $in ,
+  .or_use_this ( {out_wpat1, out_wpat2[5:4]} ) $in,
+  .thisout ( otherout_wpat1[4:2] ) $out,
+  // unresolved module cannot have pattern specified
+  .unknowndir ( unknownnet[3:0] )
+  );
+
+// for resolved instance
+// net-bus-size first equal to declaration, if any
+// else it will infer same as pin-size, it connection is only that net
+// else if connection is an expression, you must explicite declare size
+//   of net, either by state in expression, or declare it
+legacyver #(AW=8)
+  legacyinst (
+  clk = *,    // infer scalanet 'clk'
+  rstn = myreset, // infer scala
+  in0  = myin0,   // infer a bus myin0[AW-1:0] if not previous specified
+  in1  = {'1[1:0], myin1[3:0], 2'b11},  // infer bus myin1[3:0], fix 1 for bit[7:6] & [1:0]
+  out0 = {_[0], myout0[1:0], myout01[3:0], _[2:0]}, // infer 2 bus net, unused some bit
+  m/*_wpat2/ = * $out,  // unused pin *_wpat2, only output
+  m/*_wpat2/ = '1,
+  .*
+  );
+  
+endmodule
+

@@ -1,0 +1,58 @@
+
+class <Unit>:
+    |- mods<Module>         -> list of modules
+    |   ex : unit.mods['mod_name']
+    |- tops<Module>         -> list of top-module, only available after call unit.link()
+    |- link()   -> call unit.link() to unify hierachycal
+    |- elaborate()          -> to resolve parameter & bus-width for all modules
+
+<Module>:
+    |- name                 -> name of module
+    |- parent               -> <Unit> which contain this module
+    |- parameters<dict>     -> hash pair of "name = value" for all parameter, include localparam
+    |   to select specified parameter, use parameters['param_name']
+    |   ex: mod.parameters['DW'] -> get value of 'DW' parameter 
+    |       You cannnot set parameter directly, to manual overwrite the value, use:
+    |       mod.overwriteParam( {'name':value, 'other':11...} )
+    |- nets<Net>            -> all nets, include port-net
+    |   to select individual net, use nets['netname']
+    |- ports<Net>           -> list of ports (class is same with net, <Net>)
+    |- inputs<Net>
+    |- outputs<Net>
+    |- cells<Cell>          -> list of module-instance
+    |- newPort(name, direction) -> create new port
+    |- newNet(name, type)       -> create new net
+    |- newCell(name, modname)   -> create new cell, from modname
+    |- elaborate(params=None)   -> resolve parameter, with optional def-param
+
+<Cell>
+    |- name         -> name of cell
+    |- parent       -> <Module> which include this cell
+    |- modname      -> module name referenced by this cell
+    |- modref       -> <Module> referenced by this cell
+    |- pins<Pin>    -> list of pins, use pins['pinname'] to select individual
+    |- newPin(name, dir)    -> add new pin, with direction
+
+<Pin> : this inherit from <Net>, support all thing can done with Net
+    |- setPortRef(port) -> set a reference to port of <Module>
+
+
+<Net>
+    |- name         -> net name
+    |- ntype        -> 'wire'/'reg'
+    |- direction    -> 'net' for internal net, 'input'/'output' for port
+    |- msb          -> MSB of net, None if it's scala
+    |- lsb          -> LSB
+    |- width        -> bus width
+    |- setDrivers(val)  -> add a driver for this net
+    |- setLoads(val)    -> add a load for this net
+    |- undrivens        -> get sliced-net<Net> which have no driver
+    |- unloads          -> get sliced-net<Net> which have no load
+    |- maxDrivers()     -> get max driver for all bis, if >1 then this is multi-driven net
+    |   a net can be sliced using [msb : lsb] syntax
+    |       ex : net[5:1] -> a <Net> object with MSB=3, LSB=1
+    |   driver/load can be set for individual bits
+    |       ex : net[3:2].setDrivers('pin on cell') -> only set driver fo bit [3] & [2]
+
+
+

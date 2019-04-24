@@ -1,0 +1,7 @@
+Python parser for Verilog2001
+Currently all synthesizeble construction.
+Left off 'never-used' features in RTL design, ex:
+    + primitive
+    + lib ...
+
+

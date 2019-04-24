@@ -1,0 +1,429 @@
+grammar Verex;
+
+// ANLTR4 look deep first, take first found as defined
+import VerilogDirectives, Verilog2001; // Verilog2001 should be last ErrorChar to get all
+//import Verilog2001;
+
+// short ttop rule
+vfile
+    : description
+    ;
+
+description
+    : module_declaration
+    ;
+
+
+// simplified
+module_declaration
+    : attribute_instance* module_keyword module_identifier (module_parameter_port_list)?
+      ( list_of_ports ';' module_item*
+      | list_of_port_declarations ';' non_port_module_item* )
+      'endmodule'
+    ;
+
+// add support 'int' as alias of integer
+integer_declaration
+    : integer_kw list_of_variable_identifiers ';'
+    ;
+
+integer_kw : 'int' | 'integer';
+
+//// remove unneccessary
+//list_of_port_declarations
+//    : '(' port_declaration (',' port_declaration)* ')'
+//    //| '(' ')'
+//    ;
+
+port
+    : port_expression                                 # HeaderPortName
+    | '.' port_identifier '(' (port_expression)? ')'  # HeaderPortAssign
+    ;
+
+// simplify
+port_reference
+    : port_identifier ( '[' (constant_expression | range_expression) ']')?
+    ;
+
+// added 'port' keyword
+// want to support packed-2darray??? (output reg [..][..] a;) -> Not now
+// -> Keep them as standard you support. DONT change it
+// simplify to easy handle, may allow some illegal construct
+port_declaration
+    : attribute_instance* portkw=('input'|'output'|'inout'|'port')
+      (net_type|regtype=('reg'|'integer'|'time'))? netsigned='signed'?
+      range_? list_of_port_identifiers
+      //( range_? list_of_port_identifiers
+      //| list_of_port_identifiers_wrange )
+    ;
+
+// port descl, support output id [...]; -> will map to output [...]id
+list_of_port_identifiers_wrange
+   : port_identifier_wrange (',' port_identifier_wrange)*
+   ;
+
+port_identifier_wrange
+   : port_identifier range_?
+   ;
+
+// simplify, may allow some illegal construct
+local_parameter_declaration
+    : 'localparam' ( ( 'signed'? range_? )
+                   | paramtype=( 'integer' | 'real' | 'realtime' | 'time' ) )
+      list_of_param_assignments ';'
+    ;
+
+parameter_declaration_
+    : 'parameter'
+      ( ( 'signed'? range_? )
+      | paramtype=( 'integer' | 'real' | 'realtime' | 'time' ) )
+      list_of_param_assignments
+    ;
+
+net_declaration
+    : (net_type|regtype='trireg') (charge_strength | drive_strength)? vectscala=('vectored' | 'scalared')? 'signed'?
+      range_? delay3? (list_of_net_identifiers | list_of_net_decl_assignments) ';'
+    ;
+
+
+// breakdown
+list_of_net_identifiers
+    : net_identifier_wrange (',' net_identifier_wrange)*
+    ;
+net_identifier_wrange
+    : net_identifier (dimension)*
+    ;
+
+// simplify
+net_lvalue
+    : hierid_reference
+    | net_concatenation
+    ;
+
+net_concatenation_value
+    : hierid_reference
+    | net_concatenation
+    ;
+
+// parser dont need aware of variale/net
+variable_lvalue
+    : hierid_reference
+    | net_concatenation
+    ;
+
+expression
+    : term
+    | op1=expression binary_operator op2=expression
+    | cond=expression '?' iftrue=expression ':' iffalse=expression
+    ;
+
+primity_expression
+    : binary_operator attribute_instance* term
+    | '?' attribute_instance* expression ':' term
+    ;
+
+primary
+    : number
+    | hierid_reference
+    | concatenation
+    | multiple_concatenation
+    | function_call
+    | system_function_call
+    | constant_function_call
+    | '(' mintypmax_expression ')'
+    ;
+
+// '*' is used aas repeat self in pattern, restriction is applied after parsing
+hierid_reference
+    : (hierarchical_identifier|repeatself='*') ('[' expression ']')* ('[' range_expression ']')?
+    ;
+
+// this casuse simple id like net_name[3] is infer as a net with full name 'net_name[3]' instead of 'net_name'
+// fix this
+
+escaped_hierarchical_identifier
+    : ( escaped_hierarchical_branch '.' (simple_hierarchical_branch '.' | escaped_hierarchical_branch '.')* )?
+      identifier
+    ;
+
+simple_hierarchical_identifier
+    : ( simple_hierarchical_branch '.' )? identifier
+    ;
+
+
+// removed un-neccesary loop
+conditional_statement
+    //: stat_if ({_input.LA(1)==ELSE && _input.LA(2)==IF}? stat_elseif |  // java
+    //           {_input.LA(1)==ELSE}? stat_else | ) // java
+    : stat_if ({self._input.LA(1)==self.ELSE and self._input.LA(2)==self.IF}? stat_elseif | // python
+               {self._input.LA(1)==self.ELSE}? stat_else | ) // python
+    ;
+
+ELSE : 'else';
+IF : 'if';
+
+stat_if
+    : 'if' '(' expression ')' statement_or_null
+    ;
+
+stat_elseif
+    : 'else' 'if' '(' expression ')' statement_or_null
+    //: 'else' statement_or_null
+    ;
+
+stat_else
+    : 'else' statement_or_null
+    ;
+
+// --> This should be fixed similar to above
+function_conditional_statement
+    //: funct_stat_if
+    //  ({_input.LA(1)==ELSE && _input.LA(2)==IF}? funct_stat_elseif | // java
+    //   {_input.LA(1)==ELSE}? funct_stat_else | ) // java
+    : funct_stat_if
+      ({self._input.LA(1)==self.ELSE and self._input.LA(2)==self.IF}? funct_stat_elseif | // python
+       {self._input.LA(1)==self.ELSE}? funct_stat_else | ) // python
+    ;
+
+funct_stat_if
+    : 'if' '(' expression ')' function_statement_or_null
+    ;
+
+funct_stat_elseif
+    : 'else' 'if' '(' expression ')' function_statement_or_null
+    ;
+
+funct_stat_else
+    : 'else' function_statement_or_null
+    ;
+
+//========================================
+// Required for Verex
+//========================================
+
+arrayed_identifier
+    : simple_arrayed_identifier
+    | escaped_arrayed_identifier
+    | regex_arrayed_identifier
+    ;
+
+regex_arrayed_identifier
+    : (RegexPattern|RegexReplace) (range_)?
+    ;
+
+identifier
+    : Simple_identifier
+    | Escaped_identifier
+    | RegexPattern // added
+    | RegexReplace // added
+    ;
+
+// parameter assign, support :
+// + name (expr) : withour '.' -> CANNOT, this is recognized as function_call
+// + name = expr
+list_of_parameter_assignments
+    : equal_parameter_assignment (',' equal_parameter_assignment)* // added
+    | ordered_parameter_assignment (',' ordered_parameter_assignment)*
+    | named_parameter_assignment (',' named_parameter_assignment)*
+    ;
+
+equal_parameter_assignment
+    : parameter_identifier '=' expression?
+    ;
+
+// add support for '.*'
+module_instance
+    : name_of_instance '(' special_port_connection ')'
+    | name_of_instance '(' list_of_port_connections comma_special_port_connection? ')'
+    ;
+
+special_port_connection
+    : '.*'
+    | '._'
+    ;
+
+comma_special_port_connection
+    : ',' special_port_connection
+    ;
+
+// SUPPORT mixed type in port instance
+// + pattern expr -> DONT support, for future expand not to conflict with ordered-instance
+// + pattern = expr
+// + s/pattern/replacement/
+// + /pattern/ r/repalcement/
+list_of_port_connections
+   : ordered_port_connection (',' ordered_port_connection)*
+   //| named_port_connection (',' named_port_connection)*
+   | mixed_port_connection comma_mixed_port_connection* // added
+   ;
+
+mixed_port_connection
+    : attribute_instance*
+      ( '.' port_identifier '(' port_connection_expression? ')'
+      | '.' port_identifier port_connection_expression?
+      | port_identifier '=' port_connection_expression? )
+      PinDirection?
+    //| attribute_instance* pinsubs=RegexSubstitute PinDirection?
+    ;
+
+comma_mixed_port_connection
+    : ',' mixed_port_connection
+    ;
+
+port_connection_expression
+    : expression
+    ;
+
+// // support '*' as shorthand for r/$0/
+// port_connection_expression
+//     //: '*'
+//     //| expression
+//     //;
+//     : port_term (binary_operator attribute_instance* port_term | '?' attribute_instance* port_connection_expression ':' port_term)*
+//     ;
+// 
+// port_term
+//     : unary_operator attribute_instance* port_primary
+//     | port_primary
+//     | String
+//     ;
+// 
+// port_primary
+//     : (hierarchical_identifier|repeatself='*') ('[' expression ']')* ('[' range_expression ']')?
+//     | port_concatenation
+//     | port_multiple_concatenation
+//     // normal primary would have
+//     | number
+//     | function_call
+//     | system_function_call
+//     | constant_function_call
+//     | '(' mintypmax_expression ')'
+//     ;
+// 
+// port_concatenation
+//     : '{' port_connection_expression (',' port_connection_expression)* '}'
+//     ;
+// 
+// port_multiple_concatenation
+//     : '{' constant_expression port_concatenation '}'
+//     ;
+
+
+// add support for [*] as unknow bus-width
+range_
+   : '[' msb=msb_constant_expression ':' lsb=lsb_constant_expression ']'
+   | '[' star='*' ']'  // added : support [*]
+   ;
+
+range_expression
+   : expression
+   | msb_constant_expression ':' lsb_constant_expression
+   | base_expression inckey='+:' width_constant_expression
+   | base_expression deckey='-:' width_constant_expression
+   | star='*'  // added
+   ;
+
+dimension
+   : '[' msb=dimension_constant_expression ':' lsb=dimension_constant_expression ']'
+   | '[' bit=dimension_constant_expression ']'  // added
+   | '[' star='*' ']'  // added
+   ;
+
+// Verex Tokens
+
+fragment Letter   : [a-zA-Z_\\]     ; // expand identifier to include \ at any where
+fragment Numb     : [0-9]         ;
+fragment Char     : [a-zA-Z0-9_\\]  ;
+
+fragment Lstring  : '"' (~('"' | '\\' | '\r' | '\n') | '\\' ('"' | '\\'))* '"'
+                  | '\'' (~('\'' | '\\' | '\r' | '\n') | '\\' ('\'' | '\\'))* '\'';
+//String            : Lstring ;
+
+//// now include leading space ahead
+//fragment Line_comment
+//   : '//' .*? '\r'? '\n'
+//   ;
+//One_line_comment
+//   //: '//' .*? '\r'? '\n' { setText("\n"); } -> channel(2) // java style
+//   //: [ \t]* Line_comment { self._text = "\n"; } -> channel(2) // python style
+//   ;
+//One_line_comment_from_start
+//   //: '//' .*? '\r'? '\n' { setText("\n"); } -> channel(2) // java style
+//   : '\r'? '\n' ([ \t]* Line_comment)+ { self._text = "\n"; } -> channel(2)
+//   ;
+
+
+// preceed this before UserCommand
+PinDirection      : '$' ('in'|'out'|'inout'|'any') ;
+
+//UserCommand       : '$' ( Lstring | (Char|'=')+ ) -> channel(2) ;  // in place of system call
+UserCommand       : '$' Lstring -> channel(2) ;  // in place of system call
+UserComment       : '#' Lstring -> channel(2) ;
+UserCommentEOL    : '#' Lstring '\r'? '\n' -> channel(2) ;
+
+DelimSBracO       : '[' ;
+DelimSBracC       : ']' ;
+
+//Bit_Number        : '\'' [0|1]  ;
+// add '0/'1 as identifier
+Simple_identifier
+   : [a-zA-Z_] [a-zA-Z0-9_$]*
+   | '\'' [0|1] // Added
+   ;
+
+fragment REGEX    : ~('/' | '\r' | '\n' | '\t' | ' ') | '\\/' ;
+RegexSubstitute   : 's/' REGEX+ '/' REGEX* '/' [a-z]*  ;
+RegexReplace      : 'r/' REGEX* '/' [a-z]*  ;
+//RegexPattern      : 'm' ? '/' REGEX+ '/' [a-z]*   ;
+RegexPattern      : 'm/' REGEX+ '/' [a-z]*   ;
+
+// we mostlikely never use this in RTL design
+// these characters will cause Regex to recognized as Escaped
+// , ; ...
+Escaped_identifier
+    //: '\\' ('\u0021'..'\u007E')+ ~ [ \r\t\n]*
+    : '\\' [a-zA-Z0-9_]+
+    ;
+
+// fragment REGEX    : ~('/' | '\r' | '\n') | '\\/' ;
+// fragment REGEXNOS : ~('/' | '\r' | '\n'| ' ' | '\t') | '\\/';
+// RegexSubstitute   : 's/' REGEX+ '/' REGEX* '/' [a-z]*  ;
+// RegexReplace      : 'r/' REGEX* '/' [a-z]*  ;
+// //RegexPattern      :  REGEX_D REGEXNOS* REGEX_D [a-z]* ; // must not have space
+// // tricky to match pattern but not block comment
+// RegexPattern
+//     : 'm/' REGEXNOS+ '/' [a-z]* // prefix 'm' will always match pattern
+//     | '/' . '/' [a-z]*  // simple /./
+//     | '/' ~('*' | '/' | '\r' | '\n' | ' ' | '\t') REGEXNOS*
+//           ~('*' | '/' | '\r' | '\n' | ' ' | '\t') '/' [a-z]* // no /~*...~*/
+//     | '/*' REGEXNOS*
+//           ~('*' | '/' | '\r' | '\n' | ' ' | '\t') '/' [a-z]* // /*..~*/
+//     | '/' ~('*' | '/' | '\r' | '\n' | ' ' | '\t') REGEXNOS* '*/' [a-z]* // /~*..*/
+//     ;
+
+//// match regexpattern is higher priority
+//Block_comment
+//   : '/*' .*? '*/' -> skip // just throught away
+//   ;
+
+// include leading space
+One_line_comment
+    : [ \t]* '//' .*? '\r'? '\n' -> channel (2)
+    //: '//' .*? '\r'? '\n' -> channel (2)
+    ;
+
+
+Block_comment
+    : [ \t]* '/*' .*? '*/' -> channel (2)
+    //: '/*' .*? '*/' -> channel (2)
+    ;
+
+
+// dont through away
+White_space
+    : [ \t]+ -> channel (2)
+    ;
+New_line
+    : '\r'? '\n' -> channel (2)
+    ;
+
